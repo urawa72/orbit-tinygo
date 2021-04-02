@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"strconv"
- 	"encoding/base64"
 
 	sdk "github.com/soracom/orbit-sdk-tinygo"
+	"github.com/urawa72/jsonparser"
+	"github.com/urawa72/orbit-tinygo/src/data"
 )
 
 // application entry point, but the orbit runtime never executes this.
@@ -20,21 +22,75 @@ func uplink() sdk.ErrorCode {
 	}
 	sdk.Log("Input Buffer: " + string(inputBuffer) + "\n")
 
-	timestamp := sdk.GetTimestamp()
+	decodedInputBuffer, err := base64.StdEncoding.DecodeString(string(inputBuffer))
 	if err != nil {
 		sdk.Log(err.Error())
 		return -1
 	}
-	sdk.Log("Timestamp: " + strconv.FormatInt(timestamp, 10) + "\n")
+	sdk.Log("Base64 Decoded: " + string(decodedInputBuffer) + "\n")
 
-	dec, err := base64.StdEncoding.DecodeString(string(inputBuffer))
+	output, err := convertInputToOutput(decodedInputBuffer)
 	if err != nil {
 		sdk.Log(err.Error())
-		return -1
+		return - 1
 	}
-	sdk.Log("Base64 decode: " + string(dec) + "\n")
 
-	sdk.SetOutputJSON("{\"message\": \"Hello from Orbit with TinyGo\"}")
+	serializedOuput, err := output.SerializeJSON()
+	if err != nil {
+		sdk.Log(err.Error())
+		return - 1
+	}
+
+	sdk.SetOutputJSON(string(serializedOuput))
+	sdk.Log("Serialize JSON: " + string(serializedOuput) + "\n")
 
 	return sdk.ErrorCode(0)
+}
+
+func convertInputToOutput(input []byte) (*data.Output, error) {
+	lat, err := jsonparser.GetFloat(input, "lat")
+	if err != nil {
+		return nil, err
+	}
+	slat := strconv.FormatFloat(lat, 'f', -1, 64)
+
+	lon, err := jsonparser.GetFloat(input, "lon")
+	if err != nil {
+		return nil, err
+	}
+	slon := strconv.FormatFloat(lon, 'f', -1, 64)
+
+	bat, err := jsonparser.GetInt(input, "bat")
+	if err != nil {
+		return nil, err
+	}
+
+	rs, err := jsonparser.GetInt(input, "rs")
+	if err != nil {
+		return nil, err
+	}
+
+	temp, err := jsonparser.GetFloat(input, "temp")
+	if err != nil {
+		return nil, err
+	}
+	stemp := strconv.FormatFloat(temp, 'f', -1, 64)
+
+	humi, err := jsonparser.GetFloat(input, "humi")
+	if err != nil {
+		return nil, err
+	}
+	shumi := strconv.FormatFloat(humi, 'f', -1, 64)
+
+	timestamp := sdk.GetTimestamp()
+
+	return &data.Output{
+		Lat: 	   	slat,
+		Lon: 	   	slon,
+		Bat: 	   	bat,
+		Rs:	 	   	rs,
+		Temp:		stemp,
+		Humi:		shumi,
+		Timestamp:	timestamp,
+	}, nil
 }
