@@ -22,6 +22,20 @@ func uplink() sdk.ErrorCode {
 	}
 	sdk.Log("Input Buffer: " + string(inputBuffer) + "\n")
 
+	resourceId, err := sdk.GetSourceValue("resourceId")
+	if err != nil {
+		sdk.Log(err.Error())
+		return -1
+	}
+	sdk.Log("Source Value: " + string(resourceId) + "\n")
+
+	// name, err := sdk.GetTagValue("name")
+	// if err != nil {
+	// 	sdk.Log(err.Error())
+	// 	return -1
+	// }
+	// sdk.Log("Tag Value: " + string(name) + "\n")
+
 	decodedInputBuffer, err := base64.StdEncoding.DecodeString(string(inputBuffer))
 	if err != nil {
 		sdk.Log(err.Error())
